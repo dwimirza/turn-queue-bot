@@ -8,10 +8,20 @@ Type=simple
 User=bot
 WorkingDirectory=/opt/turn-queue-bot
 Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=DB_PATH=/opt/turn-queue-bot/data/queue.db
 ExecStart=/opt/turn-queue-bot/.venv/bin/python -m bot.main
 Restart=always
 RestartSec=5
+
+# Hardening: the bot only reads the app and writes its data directory.
+# If your paths differ, adjust ReadWritePaths (and drop ProtectHome when the
+# app lives under /home).
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/turn-queue-bot/data
 
 [Install]
 WantedBy=multi-user.target

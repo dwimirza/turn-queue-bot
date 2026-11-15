@@ -11,11 +11,23 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
+DEFAULT_KEEP_DAYS = 14
+
+
+def _keep_days() -> int:
+    raw = os.getenv("BACKUP_KEEP_DAYS", str(DEFAULT_KEEP_DAYS))
+    try:
+        # Never 0: the backup we just made must survive its own pruning pass.
+        return max(1, int(raw))
+    except ValueError:
+        print(f"BACKUP_KEEP_DAYS tidak valid ({raw!r}), pakai {DEFAULT_KEEP_DAYS}")
+        return DEFAULT_KEEP_DAYS
+
 
 def main() -> int:
     db_path = Path(os.getenv("DB_PATH", "queue.db"))
     backup_dir = Path(os.getenv("BACKUP_DIR", str(db_path.parent / "backup")))
-    keep = int(os.getenv("BACKUP_KEEP_DAYS", "14"))
+    keep = _keep_days()
 
     if not db_path.exists():
         print(f"database tidak ditemukan: {db_path}")

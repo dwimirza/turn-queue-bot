@@ -213,7 +213,7 @@ docker exec -it turn-queue-bot bash   # masuk ke container
 
 ### Backup harian
 
-`scripts/backup.py` menyalin database memakai SQLite backup API (aman walau bot sedang menulis) ke `backup/queue-YYYY-MM-DD.db`, dan menyimpan `BACKUP_KEEP_DAYS` hari terakhir (default 14).
+`scripts/backup.py` menyalin database memakai SQLite backup API (aman walau bot sedang menulis) ke `backup/queue-YYYY-MM-DD.db`, dan menyimpan `BACKUP_KEEP_DAYS` hari terakhir (default 14, minimal 1 file supaya backup hari ini tidak ikut terhapus).
 
 ```bash
 # tambahkan ke crontab -e di VM
@@ -239,7 +239,7 @@ sudo systemctl enable --now turn-queue-bot
 journalctl -u turn-queue-bot -f
 ```
 
-Unit memakai `Restart=always` dan `DB_PATH=/opt/turn-queue-bot/data/queue.db`.
+Unit memakai `Restart=always` dan `DB_PATH=/opt/turn-queue-bot/data/queue.db`, plus hardening dasar (`NoNewPrivileges`, `PrivateTmp`, `ProtectSystem=strict`, `ProtectHome`, `ReadWritePaths`). Kalau path data atau venv kamu berbeda, sesuaikan `ReadWritePaths` (dan hapus `ProtectHome` kalau app-nya di bawah `/home`), kalau tidak, bot tidak bisa menulis database.
 
 ### Catatan free tier
 
