@@ -5,6 +5,7 @@ from datetime import datetime
 import discord
 
 from bot.timefmt import fmt_wib, remaining
+from core.turns import BASE_DAYS
 
 NOT_A_MEMBER = "Kamu bukan anggota antrian"
 NOT_YOUR_OFFER = "Bukan tawaran untukmu, atau sudah diproses."
@@ -44,6 +45,7 @@ def expiry_reminder_text(discord_id: str, left: str) -> str:
 def status_embed(snap: dict, now: datetime) -> discord.Embed:
     holder = snap["holder"]
     offered = snap["offered"]
+    balances = snap["balances"]
     embed = discord.Embed(title="Status giliran")
     if holder is None and offered is None:
         embed.description = "Antrian belum jalan. Belum ada yang pegang akses."
@@ -65,9 +67,14 @@ def status_embed(snap: dict, now: datetime) -> discord.Embed:
     if offered is None:
         embed.add_field(name="Tawaran", value="Tidak ada", inline=False)
     else:
+        allotment = BASE_DAYS + balances.get(offered["name"], 0)
+        balance = balances.get(offered["name"], 0)
         embed.add_field(
             name="Tawaran",
-            value=f"<@{offered['discord_id']}> ({offered['name']}) belum jawab",
+            value=(
+                f"<@{offered['discord_id']}> ({offered['name']}) belum jawab\n"
+                f"Jatah {allotment} hari ({BASE_DAYS} + cadangan {balance})"
+            ),
             inline=False,
         )
 
@@ -76,15 +83,21 @@ def status_embed(snap: dict, now: datetime) -> discord.Embed:
     if offered is not None:
         queue = [item for item in queue if item["discord_id"] != offered["discord_id"]]
     if queue:
-        lines = [
-            f"{i}. {item['name']} — saldo {item['balance']} — {fmt_wib(item['eta'])}"
-            for i, item in enumerate(queue, start=1)
-        ]
+        lines = [_queue_line(i, item) for i, item in enumerate(queue, start=1)]
         embed.add_field(name="Antrian", value="\n".join(lines), inline=False)
     else:
         embed.add_field(name="Antrian", value="Kosong", inline=False)
 
-    balances = snap["balances"]
     saldo = ", ".join(f"{name} {days}" for name, days in balances.items()) or "—"
-    embed.add_field(name="Saldo", value=saldo, inline=False)
+    embed.add_field(
+        name="Cadangan",
+        value=f"{saldo}\nJatah tiap giliran = {BASE_DAYS} + cadangan",
+        inline=False,
+    )
     return embed
+
+
+def _queue_line(position: int, item: dict) -> str:
+    allotment = BASE_DAYS + item["balance"]
+    extra = f" ({item['balance']} cadangan)" if item["balance"] else ""
+    return f"{position}. {item['name']} — {allotment} hari{extra} — mulai {fmt_wib(item['eta'])}"

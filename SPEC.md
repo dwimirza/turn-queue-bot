@@ -134,7 +134,7 @@ Send the message **after** the DB transaction has committed. If sending fails, l
 
 | Command | Who | Behavior |
 |---|---|---|
-| `/status` | anyone | Public embed: current holder + time left (days/hours) and end time in WIB; pending offer (who); queue in order with estimated start (WIB date) and balance each; balances of everyone. Handle IDLE (nobody holds, no offer) gracefully. |
+| `/status` | anyone | Public embed: current holder + time left (days/hours) and end time in WIB; pending offer (who); queue in order with estimated start (WIB date) and balance each; balances of everyone. Show each person's allotment as `7 + balance` so the base 7 days is visible, and list the leftover days as `cadangan`. Handle IDLE (nobody holds, no offer) gracefully. |
 | `/checkout` | holder only | `with db: nxt = turns.checkout(db, uid)`. Reply publicly with how many days were saved to balance (read balance before and after). Then `notify(nxt)`. `NotAllowed` → ephemeral error. |
 | `/admin start` | members of `ADMIN_ROLE_ID` (or Manage Server if unset) | `with db: first = turns.start(db)`. If `None`, reply "sudah berjalan". Else `notify(first)`. |
 | `/admin reset` | same as `/admin start` | Ephemeral confirm button, then `with db: turns.reset(db, MEMBERS)`: close every `offered`/`active` session, put everyone back in `MEMBERS` order, balances to 0. No message is sent afterwards. |
