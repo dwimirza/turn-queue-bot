@@ -295,4 +295,4 @@ sqlite3 queue.db ".backup 'queue-2026-11-15.db'"
 | `/admin start` bilang "sudah berjalan" | Masih ada sesi ACTIVE atau tawaran OFFERED. Tunggu, selesaikan dengan `/checkout`, atau `/admin reset` |
 | Data terlihat "hilang" | Bot dijalankan dari folder lain sehingga membuat `queue.db` baru. Selalu jalankan dari root repo atau pakai `DB_PATH` absolut |
 
-Log ditulis ke stdout. Setiap kegagalan pengiriman pesan atau tick dicatat lengkap dengan traceback, tidak mematikan bot.
+Log keluar ke **stderr** lewat `discord.utils.setup_logging` (level INFO), lengkap dengan timestamp dan traceback. Setiap kegagalan pengiriman pesan atau tick dicatat tanpa mematikan bot.
