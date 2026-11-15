@@ -215,5 +215,11 @@ def status(db, now=None):
     ):
         queue.append({"discord_id": r["discord_id"], "name": r["name"], "balance": r["balance"], "eta": t})
         t += timedelta(days=BASE_DAYS + r["balance"])
-    balances = {r["name"]: r["balance"] for r in db.execute("SELECT name, balance FROM members")}
+    balances = {
+        r["name"]: r["balance"]
+        for r in db.execute(
+            "SELECT name, balance FROM members "
+            "ORDER BY queue_pos IS NULL DESC, queue_pos, name"
+        )
+    }
     return {"holder": holder, "offered": offered, "queue": queue, "balances": balances}

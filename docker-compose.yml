@@ -1,0 +1,22 @@
+services:
+  bot:
+    build: .
+    image: turn-queue-bot:latest
+    container_name: turn-queue-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_PATH: /data/queue.db
+      TZ: Asia/Jakarta
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - queue-data:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  queue-data:

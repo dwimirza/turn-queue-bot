@@ -51,3 +51,23 @@ def test_old_rows_get_zero_default(tmp_path):
     db = connect(str(path))
     row = db.execute("SELECT offer_reminded, expiry_reminded FROM sessions").fetchone()
     assert (row["offer_reminded"], row["expiry_reminded"]) == (0, 0)
+
+
+def test_connect_creates_missing_parent_directory(tmp_path):
+    # DB_PATH=data/queue.db must not fail with "unable to open database file".
+    path = tmp_path / "data" / "queue.db"
+    db = connect(str(path))
+    assert path.exists()
+    assert db.execute("SELECT COUNT(*) FROM members").fetchone()[0] == 0
+    db.close()
+
+
+def test_connect_keeps_schema_and_pragmas(tmp_path):
+    db = connect(str(tmp_path / "queue.db"))
+    assert db.execute("PRAGMA foreign_keys").fetchone()[0] == 1
+    by_id = db.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='index' AND name='one_active'"
+    ).fetchone()
+    assert by_id is not None
+    db.close()
+

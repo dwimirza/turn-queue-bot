@@ -1,0 +1,17 @@
+[Unit]
+Description=Turn Queue Discord Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bot
+WorkingDirectory=/opt/turn-queue-bot
+Environment=PYTHONUNBUFFERED=1
+Environment=DB_PATH=/opt/turn-queue-bot/data/queue.db
+ExecStart=/opt/turn-queue-bot/.venv/bin/python -m bot.main
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

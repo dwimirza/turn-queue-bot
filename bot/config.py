@@ -21,6 +21,7 @@ class Settings:
 def parse_members(raw: str) -> list[tuple[str, str]]:
     """Parse `id:name,id:name` into queue order. Raises ValueError on a bad value."""
     members: list[tuple[str, str]] = []
+    seen: set[str] = set()
     for part in raw.split(","):
         part = part.strip()
         if not part:
@@ -31,6 +32,13 @@ def parse_members(raw: str) -> list[tuple[str, str]]:
         discord_id, name = discord_id.strip(), name.strip()
         if not discord_id or not name:
             raise ValueError(f"MEMBERS entry {part!r} needs both an id and a name")
+        # IDs are snowflakes. Anything else would break <@id> mentions and could
+        # turn a typo into an @everyone ping.
+        if not discord_id.isdigit():
+            raise ValueError(f"MEMBERS entry {part!r} has a non-numeric Discord id")
+        if discord_id in seen:
+            raise ValueError(f"MEMBERS has duplicate id {discord_id}")
+        seen.add(discord_id)
         members.append((discord_id, name))
     if not members:
         raise ValueError("MEMBERS is empty")
@@ -46,9 +54,12 @@ def _required(name: str) -> str:
 
 def _int_env(name: str, raw: str) -> int:
     try:
-        return int(raw)
+        value = int(raw)
     except ValueError:
         raise SystemExit(f"{name} must be an integer, got {raw!r}") from None
+    if value <= 0:
+        raise SystemExit(f"{name} must be a positive integer, got {value}")
+    return value
 
 
 def load_settings() -> Settings:

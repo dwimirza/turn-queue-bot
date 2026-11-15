@@ -1,6 +1,19 @@
+# secrets
 .env
+.env.*
+!.env.example
+
+# databases and sqlite sidecar files
 *.db
+*.db-journal
+*.db-wal
+*.db-shm
 backup/
+
+# python / tooling
 __pycache__/
+*.pyc
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
 .venv/

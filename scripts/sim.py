@@ -50,7 +50,7 @@ def main():
         with db:
             turns.accept(db, "2", t0)
     except turns.NotAllowed as exc:
-        print("   ditolak :", exc.lines[0] if hasattr(exc, "lines") else exc)
+        print("   ditolak :", exc)
     show(db, t0)
 
     step("dzikra Accept -> 7 hari")

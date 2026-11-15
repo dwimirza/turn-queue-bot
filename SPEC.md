@@ -20,7 +20,7 @@ Group members (fixed, no join/leave): **dzikra, locke, radrtma, kjaer**. Initial
 | 1. Core logic + SQLite schema + tests (`core/`, `schema.sql`, `tests/`) | **DONE**, 9 tests pass. Do not rewrite. Extend only where this spec says so. |
 | 2. Discord layer (`bot/`) | **DONE** — code complete; manual checklist in §12 still to run in a test server. |
 | 3. Reminders | **DONE** — `offer_halfway` (12h) + `expiry_soon` (<=1 day), flags migrated in `core/db.py`. |
-| 4. Deploy | TODO |
+| 4. Deploy | **DONE** — `Dockerfile`, `docker-compose.yml`, `deploy/turn-queue-bot.service`, `scripts/backup.py`, panduan di README. Tinggal membuat instance-nya. |
 
 ## 3. Domain rules (already implemented in `core/turns.py`)
 

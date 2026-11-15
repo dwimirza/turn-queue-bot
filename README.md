@@ -70,10 +70,10 @@ Tidak ada
 Antrian
 1. locke — 14 hari (7 cadangan) — mulai Sen 23 Nov, 10:00 WIB
 2. radrtma — 7 hari — mulai Sen 30 Nov, 10:00 WIB
-3. elhadi — 7 hari — mulai Sen 7 Dec, 10:00 WIB
+3. kjaer — 7 hari — mulai Sen 7 Dec, 10:00 WIB
 
 Cadangan
-dzikra 0, locke 7, radrtma 0, elhadi 5
+dzikra 0, locke 7, radrtma 0, kjaer 5
 Jatah tiap giliran = 7 + cadangan
 ```
 
@@ -132,13 +132,13 @@ DISCORD_TOKEN=token-bot-kamu
 GUILD_ID=123456789012345678
 NOTIFY_CHANNEL_ID=123456789012345678
 ADMIN_ROLE_ID=
-MEMBERS=111111111111111111:dzikra,222222222222222222:locke,333333333333333333:radrtma,444444444444444444:elhadi
+MEMBERS=111111111111111111:dzikra,222222222222222222:locke,333333333333333333:radrtma,444444444444444444:kjaer
 DB_PATH=queue.db
 ```
 
-- `MEMBERS` menentukan **urutan awal antrian** dan nama yang tampil di `/status`.
+- `MEMBERS` menentukan **urutan awal antrian** dan nama yang tampil di `/status`. ID harus **angka** (Copy User ID), bukan username; ID ganda atau bukan angka membuat bot menolak start dengan pesan jelas.
 - `ADMIN_ROLE_ID` boleh dikosongkan → fallback ke izin Manage Server.
-- `DB_PATH` opsional, default `queue.db` (relatif ke folder tempat bot dijalankan).
+- `DB_PATH` opsional, default `queue.db` (relatif ke folder tempat bot dijalankan). Folder induknya dibuat otomatis kalau belum ada, jadi `DB_PATH=data/queue.db` aman.
 - `.env` **jangan pernah di-commit**; sudah masuk `.gitignore`.
 
 ### 6. Validasi konfigurasi
@@ -178,6 +178,75 @@ python -c 'import sqlite3; db=sqlite3.connect("queue.db"); db.execute("UPDATE se
 python -c 'import sqlite3; db=sqlite3.connect("queue.db"); db.execute("UPDATE sessions SET offered_at=?", ("2020-01-01T00:00:00+00:00",)); db.commit()'
 ```
 
+## Deploy (hidup 24/7)
+
+Bot ini butuh proses yang **hidup terus** dan **disk persisten**. Rekomendasi: **Oracle Cloud Always Free**, region **Singapore**, shape **VM.Standard.E2.1.Micro** (1/8 OCPU, 1 GB RAM) — lebih dari cukup, dan gratis permanen. Alternatif gratis lain: GCP `e2-micro` di `us-west1` (jarak ~0,25 detik, tidak masalah untuk bot ini). Kalau tidak mau berurusan dengan free tier: VPS Singapura ~$3–4/bulan.
+
+### Docker (cara utama)
+
+```bash
+git clone https://github.com/dwimirza/turn-queue-bot.git
+cd turn-queue-bot
+cp .env.example .env
+nano .env          # isi token + ID Discord
+chmod 600 .env
+
+docker compose up -d --build
+docker compose logs -f
+```
+
+Yang dilakukan compose:
+
+- `queue.db` disimpan di named volume `queue-data` (path di container: `/data/queue.db`), jadi data selamat saat container dibuat ulang.
+- `restart: unless-stopped` — bot hidup lagi otomatis setelah VM reboot atau crash.
+- Log dibatasi 10 MB × 3 file supaya disk tidak penuh.
+- `.env` tidak pernah masuk image (lihat `.dockerignore`).
+
+Operasi sehari-hari:
+
+```bash
+docker compose logs -f --tail 100     # lihat log
+docker compose restart                # restart manual
+git pull && docker compose up -d --build   # update ke versi terbaru
+docker exec -it turn-queue-bot bash   # masuk ke container
+```
+
+### Backup harian
+
+`scripts/backup.py` menyalin database memakai SQLite backup API (aman walau bot sedang menulis) ke `backup/queue-YYYY-MM-DD.db`, dan menyimpan `BACKUP_KEEP_DAYS` hari terakhir (default 14).
+
+```bash
+# tambahkan ke crontab -e di VM
+0 3 * * * docker exec turn-queue-bot python -m scripts.backup >> ~/queue-backup.log 2>&1
+```
+
+Salin backup ke laptop sesekali, karena "gratis selamanya" tetap bisa berakhir:
+
+```bash
+docker cp turn-queue-bot:/data/backup ./backup
+scp -r ubuntu@<ip-server>:~/turn-queue-bot/backup .
+```
+
+### systemd (alternatif tanpa Docker)
+
+Pakai unit yang sudah disediakan, sesuaikan `User=`, `WorkingDirectory=`, dan path venv:
+
+```bash
+sudo mkdir -p /opt/turn-queue-bot/data
+sudo cp deploy/turn-queue-bot.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now turn-queue-bot
+journalctl -u turn-queue-bot -f
+```
+
+Unit memakai `Restart=always` dan `DB_PATH=/opt/turn-queue-bot/data/queue.db`.
+
+### Catatan free tier
+
+- Oracle bisa menarik instance yang dianggap idle; bot yang terhubung ke gateway 24/7 biasanya aman, tapi jangan jadikan satu-satunya tempat backup.
+- Jangan hapus boot volume saat menghapus instance — data antrian ada di situ.
+- Hanya port SSH (22) yang perlu terbuka. Bot tidak menerima koneksi masuk.
+
 ## Struktur proyek
 
 ```
@@ -202,6 +271,7 @@ SPEC.md              # sumber kebenaran requirement
 ## Data & backup
 
 - Semua state ada di satu file SQLite (`DB_PATH`, default `queue.db`). Jangan jalankan dua instance bot dengan DB yang sama.
+- DB memakai mode **WAL**, jadi `queue.db-wal` dan `queue.db-shm` bisa muncul di sampingnya. Itu normal — jangan dihapus selama bot hidup.
 - Backup murah dan aman dilakukan saat bot hidup:
 
 ```powershell
